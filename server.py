@@ -4,18 +4,10 @@ import rsa
 
 SERVER_IP = '127.0.0.1'  # Change this to your server's IP address
 SERVER_PORT = 12345  # Change this to your server's port
-# Convert list to bytes
-byte_data = bytes(encrypted_client_name_public_key)
 
-# Now you can send it
-connection.sendall(byte_data)
 
 def encrypt_large_text(message, public_key):
-    # Define the chunk size based on # Decode bytes to string
-decoded_data = decrypted_data.decode()
-
-# Now you can split it
-client_name, client_public_key = decoded_data.split('|')the key size
+    # Define the chunk size based on the key size
     chunk_size = rsa.common.byte_size(public_key.n) - 42
     encrypted_chunks = []
 
