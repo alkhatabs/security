@@ -33,10 +33,10 @@ def generate_and_save_keypair(folder):
     if not os.path.exists(folder):
         os.makedirs(folder)
     # Save private key to a PEM file
-    with open(os.path.join(folder, 'private_key.pem'), 'wb') as f:
+    with open(os.path.join(folder, 'A_private_key.pem'), 'wb') as f:
         f.write(private_key_pem)
     # Save public key to a PEM file
-    with open(os.path.join(folder, 'public_key.pem'), 'wb') as f:
+    with open(os.path.join(folder, 'A_public_key.pem'), 'wb') as f:
         f.write(public_key_pem)
     return private_key, public_key
 
@@ -73,6 +73,13 @@ def exchange_public_key_and_name(server_socket, client_name, public_key):
         print("Error exchanging public keys:", e)
         return None
 
+def save_server_public_key(server_public_key):
+    # Save server's public key
+    with open(os.path.join('client_a', 'server_public_key.pem'), 'wb') as f:
+        f.write(server_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
 
 def respond_to_challenge(client_socket, server_public_key, private_key):
     # Receive challenge from server
@@ -165,14 +172,15 @@ def challenge_response(server_socket, private_key):
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Generate and save RSA key pair for Client A
-private_key, public_key = generate_and_save_keypair('A')
+private_key, public_key = generate_and_save_keypair('client_a')
 
 # Connect to server
 client_socket.connect((HOST, PORT))
 
 # Exchange public key and client name with server
-server_public_key = exchange_public_key_and_name(client_socket, "client_a", public_key)
-
+server_public_key = exchange_public_key_and_name(client_socket, "A", public_key)
+# Save server's public key
+save_server_public_key(server_public_key)
 # Respond to challenge from server
 respond_to_challenge(client_socket, server_public_key, private_key)
 
