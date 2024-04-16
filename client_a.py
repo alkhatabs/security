@@ -1,94 +1,48 @@
 import socket
-import rsa
 import os
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
+# Client configuration
+HOST = '127.0.0.1'
+PORT = 5555
 
-SERVER_IP = '127.0.0.1'  # Change this to your server's IP address
-SERVER_PORT = 12345  # Change this to your server's port
+# Function to generate RSA key pair and save it in a folder
+def generate_and_save_keypair(folder):
+    # Generate RSA key pair
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048
+    )
+    # Serialize private key to PEM format
+    private_key_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    # Create folder if it doesn't exist
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    # Save private key to a PEM file
+    with open(os.path.join(folder, 'private_key.pem'), 'wb') as f:
+        f.write(private_key_pem)
 
+# Create socket object
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def generate_certificate(client_name, client_public_key, server_private_key):
-    # Ensure client_name is a string
-    client_name = client_name.decode()
-    # Combine client name and public key for signing
-    data_to_sign = client_name.encode() + client_public_key
-    # Sign the data to create a certificate
-    signature = rsa.sign(data_to_sign, server_private_key, 'SHA-256')
-    # Return the certificate
-    return data_to_sign + b'|' + signature
+# Generate and save RSA key pair for Client A
+generate_and_save_keypair('client_a')
 
-def verify_certificate(certificate, public_key):
-    # Split the certificate into data and signature
-    data, signature = certificate.split(b'|')
-    # Verify the signature using the public key
-    try:
-        rsa.verify(data, signature, public_key)
-        return True
-    except rsa.VerificationError:
-        return False
-    
-def save_certificate_to_pem(certificate, filename):
-    with open(filename, 'wb') as f:
-        f.write(certificate)
-        
-def generate_key_pair():
-    # Generate a new RSA key pair
-    public_key, private_key = rsa.newkeys(512)  # Adjust key size as needed
-    with open('public_key_A', 'wb') as f:
-        f.write(public_key.save_pkcs1())
-    with open('private_key_A', 'wb') as f:
-        f.write(private_key.save_pkcs1())
-    return public_key, private_key
+# Connect to server
+client_socket.connect((HOST, PORT))
 
-def send_message(connection, message):
-    connection.sendall(message)
+# Send client's name to server
+client_socket.sendall("Client A".encode('utf-8'))
 
-def receive_message(connection):
-    data = connection.recv(1024)
-    return data
+while True:
+    # Send message to server
+    message = input("Client A: ")
+    client_socket.sendall(message.encode('utf-8'))
 
-def main():
-    # Generate client's key pair and save them in PEM files
-    client_public_key, client_private_key = generate_key_pair()
-    # Connect to the server
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((SERVER_IP, SERVER_PORT))
-    # receive server's public key
-    server_public_key = receive_message(client_socket)
-    server_public_key = rsa.PublicKey.load_pkcs1(server_public_key)
-
-    # Set the client name directly
-    client_name = "A"
-
-    # Encrypt the client's name using the server's public key
-    encrypted_client_name = rsa.encrypt(client_name.encode(), server_public_key)
-
-    # Send the encrypted client name to the server
-    send_message(client_socket, encrypted_client_name )
-
-    # Receive the server's response
-    server_response = receive_message(client_socket)
-    if server_response == b'Access Granted':
-        print("Access granted by the server.")
-
-        # Close the initial connection
-        client_socket.close()
-
-        # Establish a direct connection to the server
-        direct_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        direct_socket.connect((SERVER_IP, SERVER_PORT))
-        print("Direct connection to the server established.")
-
-        # Receive and process messages from the server
-        while True:
-            server_message = receive_message(direct_socket)
-            if server_message:
-                print("Received message from server:", server_message.decode())
-            else:
-                print("Connection closed by server.")
-                break
-    else:
-        print("Access denied by the server.")
-
-if __name__ == '__main__':
-    main()
+# Close the connection
+client_socket.close()
