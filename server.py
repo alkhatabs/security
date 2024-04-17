@@ -30,17 +30,29 @@ def handle_client(client_socket, client_name, client_public_key):
     client_socket.close()
 
 def send_message(client_socket, message):
-    if isinstance(message, str):
-        client_socket.sendall(message.encode('utf-8'))
-    else:
+    try:
+        # Try sending the message as is
         client_socket.sendall(message)
+    except AttributeError:
+        # If message is not bytes, encode it as utf-8
+        encoded_message = message.encode('utf-8')
+        client_socket.sendall(encoded_message)
+    except Exception as e:
+        print("Error sending message:", e)
+
 
 def receive_message(client_socket):
-    data = client_socket.recv(4096)
-    if isinstance(data, bytes):
-        return data.decode('utf-8')
-    else:
+    try:
+        data = client_socket.recv(4096)
+        # Try decoding the received data as utf-8
+        decoded_data = data.decode('utf-8')
+        return decoded_data
+    except UnicodeDecodeError:
+        # If utf-8 decoding fails, return the raw data
         return data
+    except Exception as e:
+        print("Error receiving message:", e)
+
 
 def generate_hash(data):
     """Generate a SHA-256 hash of the provided data."""
@@ -139,7 +151,6 @@ def authenticate_client(client_socket, client_public_key):
 
         # Receive the response from the client
         response = receive_message(client_socket)
-
         # Verify the response by decrypting the received signature
         if verify_response(challenge, response, client_public_key):
             print("Client authenticated successfully.")
@@ -157,8 +168,8 @@ def authenticate_client(client_socket, client_public_key):
 
 def verify_response(challenge, response, client_public_key):
     try:
-        # Decrypt the received signature using the client's public key
-        decrypted_signature = client_public_key.verify(
+        # Verify the response by using the client's public key
+        client_public_key.verify(
             response,
             challenge,
             padding.PSS(
@@ -167,8 +178,12 @@ def verify_response(challenge, response, client_public_key):
             ),
             hashes.SHA256()
         )
-        # Verification successful if the decrypted signature matches the original challenge
-        return decrypted_signature == challenge
+        print("Response verified successfully.")
+        return True
+
+    except Exception as e:
+        print(f"Error verifying client response: {e}")
+        return False
 
     except Exception as e:
         print(f"Error verifying client response: {e}")
@@ -185,7 +200,6 @@ def main():
     server_socket.bind((HOST, PORT))
     server_socket.listen(3)
     print(f'Server listening on {HOST}:{PORT}')
-
     while True:
         # Accept incoming connections
         client_socket, addr = server_socket.accept()
@@ -197,7 +211,9 @@ def main():
         if authenticate_client(client_socket, client_public_key):
             # Start a new thread to handle client communication
             print(f"Client {client_name} authenticated successfully.")
-            client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+            # Add the authenticated client to the list
+            clients.append((client_socket, client_name, client_public_key))
+            client_thread = threading.Thread(target=handle_client, args=(client_socket,client_name, client_public_key))
             client_thread.start()
 
 # List to keep track of connected clients

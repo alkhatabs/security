@@ -45,8 +45,16 @@ def send_message(server_socket, message):
     if isinstance(message, str):
         server_socket.sendall(message.encode('utf-8'))
     else:
-        server_socket.sendall(message)
-
+        try:
+            # Try sending the message as is
+            server_socket.sendall(message)
+        except AttributeError:
+            # If message is not bytes, encode it as utf-8
+            encoded_message = message.encode('utf-8')
+            server_socket.sendall(encoded_message)
+        except Exception as e:
+            print("Error sending message:", e)
+    
 def receive_message(server_socket):
     data = server_socket.recv(1024)
     return data
