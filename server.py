@@ -11,6 +11,7 @@ import base64
 HOST = '127.0.0.1'
 PORT = 5555
 
+
 # Function to handle client connections
 def handle_client(client_socket, client_name, client_public_key):
     while True:
@@ -28,6 +29,10 @@ def handle_client(client_socket, client_name, client_public_key):
     # If client disconnects, remove it from the list
     clients.remove((client_socket, client_name))
     client_socket.close()
+
+    # Print the number of clients connected
+    print(f"Number of clients connected: {len(clients)}")
+
 
 def send_message(client_socket, message):
     try:

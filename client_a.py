@@ -131,7 +131,7 @@ def handle_challenge_response(server_socket, client_private_key):
 
 
 def main():
-    # Generate and save RSA key pair for Client A
+    # Generate and save RSA key pair for Client B
     private_key, public_key = generate_and_save_keypair('client_a')
     # Connect to server
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -143,7 +143,20 @@ def main():
     save_server_public_key(server_public_key)
     # Perform challenge-response authentication
     handle_challenge_response(client_socket, private_key)
-    receive_message(client_socket)
+    
+    # If authentication successful, keep the connection alive
+    while True:
+        # Receive message from server
+        data = receive_message(client_socket)
+        if not data:
+            # If server closes the connection, break the loop
+            break
+        print("Received:", data.decode('utf-8'))
+
+        # Send a message back to the server
+        message = input("Enter your message: ")
+        send_message(client_socket, message)
+
     # Close the connection
     client_socket.close()
 
