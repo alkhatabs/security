@@ -7,10 +7,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 import base64
+
 # Server configuration
 HOST = '127.0.0.1'
 PORT = 5555
-
 
 # Function to handle client connections
 def handle_client(client_socket, client_name, client_public_key):
@@ -190,9 +190,7 @@ def verify_response(challenge, response, client_public_key):
         print(f"Error verifying client response: {e}")
         return False
 
-    except Exception as e:
-        print(f"Error verifying client response: {e}")
-        return False
+
 
 
 
